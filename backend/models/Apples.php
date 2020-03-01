@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use yii\db\Exception;
+use yii\db\Expression;
 
 /**
  * This is the model class for table "apples".
@@ -19,6 +20,9 @@ class Apples extends \yii\db\ActiveRecord
 {
     const STATUS_IS_HANGING = 0;
     const STATUS_IS_DROPPED = 1;
+
+    private $created_at;
+    private $dropped_at;
 
     /**
      * {@inheritdoc}
@@ -36,7 +40,7 @@ class Apples extends \yii\db\ActiveRecord
         return [
             [['status', 'created_at'], 'integer'],
             [['size'], 'number'],
-            [['dropped_at'], 'safe'],
+            ['size', 'in','range'=>range(0,1)],
             [['color'], 'string', 'max' => 255],
         ];
     }
@@ -80,9 +84,51 @@ class Apples extends \yii\db\ActiveRecord
                 }
             }
 
+            if ($model->status == self::STATUS_IS_DROPPED && $this->status == self::STATUS_IS_HANGING) {
+
+                $this->addError('status', 'Яблоко нельзя повесить обратно на дерево.');
+            }
+
             if (($model->size - $this->size) < 0) {
 
                 $this->addError('size', 'Невозможно съесть больше, чем '.$model->getSizeInPercent().' от яблока.');
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function beforeSave($insert)
+    {
+        if (parent::beforeSave($insert)) {
+
+            /*
+             * Если яблоко новое, то оно обязатольно должно:
+             *  1 - Висеть на дереве
+             *  2 - Иметь рандомный UnixTimeStamp для поля created_at
+             *  3 - Иметь случайный цвет
+             *  4 - Быть целым (вариант, что птички поклюют не рассматирваем)
+             */
+            if ($this->isNewRecord) {
+
+                $this->color = $this->getRandomColorFromApplesColors();
+                $this->defineRandomTimeStampForCreatedAt();
+                $this->status = self::STATUS_IS_HANGING;
+                $this->size = 1;
+            }
+
+            // Если яблоко упало - записать время падения
+            if ($this->status == self::STATUS_IS_DROPPED || !$this->dropped_at) {
+
+                $this->dropped_at = new Expression('NOW()');
+            }
+
+            // Если от яблока ничего не осталось по каким-то причинам - удаляем
+            if ($this->size === 0) {
+
+                $this->delete();
             }
 
             return true;
@@ -114,7 +160,24 @@ class Apples extends \yii\db\ActiveRecord
     }
 
     /**
-     * Съесть яблоко: Если не гнилое - удаляет, в противном случаа вылетает исключение
+     * Присваивает created_at рандомный UnixTimeStamp
+     *
+     * @return boolean
+     */
+    private function defineRandomTimeStampForCreatedAt()
+    {
+        if (!$this->created_at) {
+
+            $this->created_at = rand(1, time());
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Съесть яблоко
      *
      * @var $percent integer Процент от объёма яблока
      *
@@ -125,11 +188,40 @@ class Apples extends \yii\db\ActiveRecord
     {
         $this->size -= $percent/100;
 
-        if ($this->validate()) {
+        if ($this->validate() && $this->save()) {
 
-            $this->size > 0 ? $this->save() : $this->delete();
+            return true;
         }
 
         return false;
+    }
+
+    /**
+     * Возвращает массив цветов яблок
+     *
+     * @return array
+     */
+    private function getApplesColors()
+    {
+        return [
+            'green',
+            'lime',
+            'yellow',
+            'gold',
+            'indianred',
+            'red',
+        ];
+    }
+
+    /**
+     * Возвращает случайный цвет из списка цветов (вне зависимости от их количества)
+     *
+     * @return string
+     */
+    private function getRandomColorFromApplesColors()
+    {
+        $colors = $this->getApplesColors();
+
+        return $colors[rand(0, count($colors)-1)];
     }
 }

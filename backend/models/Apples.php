@@ -21,6 +21,10 @@ class Apples extends \yii\db\ActiveRecord
     const STATUS_IS_HANGING = 0;
     const STATUS_IS_DROPPED = 1;
 
+    // Устанавливаем диапазон кол-ва яблок при генерации
+    const AMOUNT_MIN_VALUE = 3;
+    const AMOUNT_MAX_VALUE = 15;
+
     private $created_at;
     private $dropped_at;
 
@@ -64,34 +68,37 @@ class Apples extends \yii\db\ActiveRecord
     {
         if(parent::beforeValidate()) {
 
-            $model = self::findOne($this->id);
+            if (!$this->isNewRecord) {
 
-            // Валидация при поедании яблока
-            if ($model->size != $this->size) {
+                $model = self::findOne($this->id);
 
-                if ($this->status == self::STATUS_IS_HANGING) {
+                // Валидация при поедании яблока
+                if ($model->size != $this->size) {
 
-                    $this->addError('size', 'Нельзя есть яблоко, которое ещё находится на дереве.');
-                } else if ($this->status == self::STATUS_IS_DROPPED) {
+                    if ($this->status === self::STATUS_IS_HANGING) {
 
-                    if ($this->dropped_at && $this->checkIfExpired()) {
+                        $this->addError('size', 'Нельзя есть яблоко, которое ещё находится на дереве.');
+                    } else if ($this->status === self::STATUS_IS_DROPPED) {
 
-                        $this->addError('size', 'Нельзя есть испорченное яблоко.');
-                    } else {
+                        if ($this->dropped_at && $this->checkIfExpired()) {
 
-                        $this->addError('size', 'Нельзя есть яблоко, которое неизвестно когда упало, т.к. может быть испорчено.');
+                            $this->addError('size', 'Нельзя есть испорченное яблоко.');
+                        } else {
+
+                            $this->addError('size', 'Нельзя есть яблоко, которое неизвестно когда упало, т.к. может быть испорчено.');
+                        }
                     }
                 }
-            }
 
-            if ($model->status == self::STATUS_IS_DROPPED && $this->status == self::STATUS_IS_HANGING) {
+                if ($model->status === self::STATUS_IS_DROPPED && $this->status == self::STATUS_IS_HANGING) {
 
-                $this->addError('status', 'Яблоко нельзя повесить обратно на дерево.');
-            }
+                    $this->addError('status', 'Яблоко нельзя повесить обратно на дерево.');
+                }
 
-            if (($model->size - $this->size) < 0) {
+                if (($model->size - $this->size) < 0) {
 
-                $this->addError('size', 'Невозможно съесть больше, чем '.$model->getSizeInPercent().' от яблока.');
+                    $this->addError('size', 'Невозможно съесть больше, чем '.$model->getSizeInPercent().' от яблока.');
+                }
             }
 
             return true;
@@ -120,7 +127,7 @@ class Apples extends \yii\db\ActiveRecord
             }
 
             // Если яблоко упало - записать время падения
-            if ($this->status == self::STATUS_IS_DROPPED || !$this->dropped_at) {
+            if ($this->status === self::STATUS_IS_DROPPED || !$this->dropped_at) {
 
                 $this->dropped_at = new Expression('NOW()');
             }
@@ -135,6 +142,19 @@ class Apples extends \yii\db\ActiveRecord
         }
 
         return false;
+    }
+
+    /**
+     * Возвращает статусы яблока
+     *
+     * @return array
+     */
+    public static function getApplesStatuses()
+    {
+        return [
+            self::STATUS_IS_HANGING => 'Висит на дереве',
+            self::STATUS_IS_DROPPED => 'Упало',
+        ];
     }
 
     /**
@@ -191,6 +211,26 @@ class Apples extends \yii\db\ActiveRecord
         if ($this->validate() && $this->save()) {
 
             return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Уронить яблоко
+     *
+     * @return boolean
+     */
+    public function fallToGround()
+    {
+        if ($this->status === self::STATUS_IS_HANGING) {
+
+            $this->status = self::STATUS_IS_DROPPED;
+
+            if ($this->validate() && $this->save()) {
+
+                return true;
+            }
         }
 
         return false;

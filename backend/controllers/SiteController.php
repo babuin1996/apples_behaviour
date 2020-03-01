@@ -1,7 +1,9 @@
 <?php
 namespace backend\controllers;
 
+use app\models\Apples;
 use Yii;
+use yii\data\ActiveDataProvider;
 use yii\web\Controller;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;

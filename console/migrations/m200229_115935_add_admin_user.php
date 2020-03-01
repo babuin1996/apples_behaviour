@@ -1,5 +1,6 @@
 <?php
 
+use common\models\User;
 use yii\db\Migration;
 
 /**
@@ -17,7 +18,7 @@ class m200229_115935_add_admin_user extends Migration
                 'username' => 'admin',
                 'email' => 'vstrukoff@yandex.ru',
                 'auth_key' => new \yii\db\Expression('LEFT(UUID(), 32)'),
-                'status' => 1,
+                'status' => User::STATUS_ACTIVE,
                 'password_hash' => Yii::$app->security->generatePasswordHash('admin'),
                 'created_at' => time(),
                 'updated_at' => time(),
@@ -30,7 +31,7 @@ class m200229_115935_add_admin_user extends Migration
      */
     public function safeDown()
     {
-        $this->delete('users', ['username' => 'admin']);
+        $this->delete('user', ['username' => 'admin']);
     }
 
     /*

@@ -35,9 +35,7 @@ class m200229_164948_create_table_apples extends Migration
      */
     public function safeDown()
     {
-        echo "m200229_164948_create_table_apples cannot be reverted.\n";
-
-        return false;
+        $this->dropTable('apples');
     }
 
     /*

@@ -25,6 +25,13 @@ class ApplesController extends \yii\web\Controller
                     ],
                 ],
             ],
+            'verbs' => [
+                'class' => VerbFilter::className(),
+                'actions' => [
+                    'eat' => ['POST'],
+                    'drop' => ['POST'],
+                ],
+            ],
         ];
     }
 
@@ -47,25 +54,28 @@ class ApplesController extends \yii\web\Controller
      */
     public function actionIndex()
     {
-        return $this->render('index', [
-            'errors' => [],
-        ]);
+        return $this->render('index', ['errors' => []]);
     }
 
-    public function actionEat($id, $percent)
+    public function actionEat()
     {
-        $apple = Apples::findOne($id);
-        $apple->eat($percent);
+        $post = \Yii::$app->request->post();
+        $apple = Apples::findOne($post['id']);
+
+        if ($post['percent']) {
+            $apple->eat($post['percent']);
+        }
 
         return $this->render('index', ['errors' => $apple->getErrors()]);
     }
 
-    public function actionDrop($id)
+    public function actionDrop()
     {
-        $apple = Apples::findOne($id);
+        $post = \Yii::$app->request->post();
+        $apple = Apples::findOne($post['id']);
         $apple->fallToGround();
 
-        return $this->redirect('/');
+        return $this->render('index', ['errors' => $apple->getErrors()]);
     }
 
     public function actionGenerate()
@@ -82,7 +92,7 @@ class ApplesController extends \yii\web\Controller
             $apple->save();
         }
 
-        return $this->redirect('/');
+        return $this->redirect('index');
     }
 
 }

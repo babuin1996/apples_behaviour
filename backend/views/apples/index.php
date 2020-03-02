@@ -28,7 +28,7 @@ $dataProvider = new ActiveDataProvider([
         </div>
     <?php endforeach; ?>
     <?= Html::a('<i class="glyphicon glyphicon-apple"></i> Сгенерировать яблоки', Url::to('/apples/generate'), ['class' => 'btn btn-primary']) ?>
-    <p>
-        <?= ApplesTable::widget(['dataProvider' => $dataProvider]) ?>
-    </p>
+    <br>
+    <br>
+    <?= ApplesTable::widget(['dataProvider' => $dataProvider]) ?>
 </div>

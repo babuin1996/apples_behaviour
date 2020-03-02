@@ -36,7 +36,7 @@ GridView::widget([
             'format' => 'raw',
             'value' => function($model) {
 
-                return Apples::getApplesStatuses()[$model['status']];
+                return $model::getApplesStatuses()[$model['status']];
             }
         ],
         [
@@ -52,9 +52,34 @@ GridView::widget([
             'format' => 'raw',
             'value' => function($model) {
 
-                return $model['status'] === Apples::STATUS_IS_HANGING ?
-                    Html::a('Уронить', Url::toRoute(['/apples/drop', 'id' => $model['id']]), ['class' => 'btn btn-primary']) :
-                    Html::a('Откусить', Url::toRoute(['/apples/eat', 'id' => $model['id'], 'percent' => 25]), ['class' => 'btn btn-primary']);
+                $eatButton =
+                    Html::beginForm('/apples/eat').
+                    Html::submitButton('Откусить', ['class' => 'btn btn-success']).' '.
+                    Html::input('text', 'percent', 25, ['style' => 'width: 10%;']).' '.
+                    Html::hiddenInput('id', $model['id']).
+                    Html::label('% от яблока' ).
+                    Html::endForm();
+
+                $dropButton = Html::a('Уронить', Url::toRoute(['/apples/drop']), [
+                    'class' => 'btn btn-primary',
+                    'data-method' => 'POST',
+                    'data-params' => ['id' => $model['id']],
+                    'data' => [
+                        'confirm' => 'Уронить это яблоко?',
+                    ],
+                ]);
+
+                if ($model['status'] === Apples::STATUS_IS_HANGING) {
+
+                    return $dropButton;
+                }
+
+                if ($model['status'] === Apples::STATUS_IS_DROPPED) {
+
+                    return $eatButton;
+                }
+
+                return '-';
             }
         ],
     ],
